@@ -44,7 +44,8 @@ int getIdleTime () {
 
 static void print_element(gpointer key, gpointer val, gpointer user)
 {
-	printf("%s -> %d\n", key, val);
+	int time = GPOINTER_TO_INT(val);
+	printf("%4d %s\n", time, key);
 
 }
 
