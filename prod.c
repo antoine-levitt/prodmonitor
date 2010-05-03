@@ -112,7 +112,7 @@ void notice_window_is_inactive()
 	assert(current_window);
 	char *name = post_process_names(current_window_name);
 	//printf("You spent %lds on %s\n", time(NULL) - current_window_since, current_window_name);
-	
+
 	gpointer res = g_hash_table_lookup(table, name);
 	int new_score = (res ? GPOINTER_TO_INT(res) : 0) + time(NULL) - current_window_since;
 	g_hash_table_insert(table, name, GINT_TO_POINTER(new_score));
@@ -137,32 +137,45 @@ void window_change_callback(WnckScreen *screen, WnckWindow *prev_window, gpointe
 {
 	wnck_screen_force_update(screen);
 	WnckWindow *active_window = wnck_screen_get_active_window(screen);
-	
-	/* // unfortunately, due to some weird bug, we can't always assume that the windows won't be NULL */
-	/* if(active_window && prev_window) { */
-	/* 	printf("Leaving %s for %s\n", wnck_window_get_name(prev_window), wnck_window_get_name(active_window)); */
-	/* } */
-	/* else */
-	/* { */
-	/* 	printf("Active %d, prev %d\n", active_window, prev_window); */
-	/* } */
 
-	// assume that the event saying that prev_window is no longer
-	// active comes BEFORE the one saying that active_window is active
+#if 0
+	//debug
+	if(active_window && prev_window) {
+		printf("Leaving %s for %s\n", wnck_window_get_name(prev_window), wnck_window_get_name(active_window));
+	}
+	else
+	{
+		printf("Active %d, prev %d\n", active_window, prev_window);
+	}
+#endif
 
 	// leaving a window
 	if(prev_window) {
-		assert(current_window == prev_window);
-		g_signal_handler_disconnect(current_window, handler_id);
-		handler_id = 0;
-		notice_window_is_inactive();
-		current_window = NULL;
-		free(current_window_name);
-		current_window_name = NULL;
+		//circumvent wnck bugs: inequality shouldn't happen in
+		//theory. If it does, then the window has been deactivated, so we don't have anything to do
+		if(current_window == prev_window) {
+			g_signal_handler_disconnect(current_window, handler_id);
+			handler_id = 0;
+			notice_window_is_inactive();
+			current_window = NULL;
+			free(current_window_name);
+			current_window_name = NULL;
+		}
 	}
-	
+
 	// entering a window
 	if(active_window) {
+		if(current_window) {
+			// Circumvent wnck bugs ...
+			// We haven't been properly disconnected, so disconnect.
+			// Yeah, I know it's a copy/paste
+			g_signal_handler_disconnect(current_window, handler_id);
+			handler_id = 0;
+			notice_window_is_inactive();
+			current_window = NULL;
+			free(current_window_name);
+			current_window_name = NULL;
+		}
 		current_window = active_window;
 		current_window_name = strdup(wnck_window_get_name(current_window));
 		time(&current_window_since);
