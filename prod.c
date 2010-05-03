@@ -16,6 +16,9 @@ WnckWindow *current_window = NULL;
 char *current_window_name = NULL; //this is a COPY, it has to be created with strdup and free'd
 time_t current_window_since;
 gulong handler_id; // id of the handler for window name change events
+GHashTable *table = NULL;
+
+
 int error()
 {
 	printf("error\n");
@@ -39,10 +42,31 @@ int getIdleTime () {
         return idle_time;
 }
 
+static void print_element(gpointer key, gpointer val, gpointer user)
+{
+	printf("%s -> %d\n", key, val);
+
+}
+
+void print_table()
+{
+	printf("Table:\n");
+	g_hash_table_foreach(table, print_element, NULL);
+}
+
 void notice_window_is_inactive()
 {
 	assert(current_window);
 	printf("You spent %ds on %s\n", time(NULL) - current_window_since, current_window_name);
+	gpointer res = g_hash_table_lookup(table, current_window_name);
+	int new_score = (res ? GPOINTER_TO_INT(res) : 0) + time(NULL) - current_window_since;
+	if(res)
+		g_hash_table_insert(table, current_window_name, GINT_TO_POINTER(new_score));
+	else{
+		// have to duplicate, otherwise it will get free'd
+		g_hash_table_insert(table, strdup(current_window_name), GINT_TO_POINTER(new_score));
+	}
+	print_table();
 }
 
 void window_name_change_callback(WnckWindow *win, gpointer user_data)
@@ -111,7 +135,11 @@ int main(int argc, char *argv[])
 
 	WnckScreen *screen = wnck_screen_get_default();
 	g_signal_connect (screen, "active-window-changed", G_CALLBACK (window_change_callback), NULL);
+
+	table = g_hash_table_new (g_str_hash, g_str_equal);
+
 	gtk_main ();
+
 
 	return 0;
 }
