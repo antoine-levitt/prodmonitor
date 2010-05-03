@@ -43,17 +43,44 @@ int getIdleTime () {
         return idle_time;
 }
 
-static void print_element(gpointer key, gpointer val, gpointer user)
-{
-	int time = GPOINTER_TO_INT(val);
-	printf("%4d %s\n", time, (char *)key);
+struct pair {
+	char *key;
+	int value;
+};
 
+int compare_pairs(const void *p1, const void *p2)
+{
+	return ((struct pair *)p2)->value - ((struct pair *)p1)->value;
 }
 
 void print_table()
 {
-	printf("Table:\n");
-	g_hash_table_foreach(table, print_element, NULL);
+	/* printf("Table:\n"); */
+	/* g_hash_table_foreach(table, print_element, NULL); */
+
+	int N = g_hash_table_size(table);
+	struct pair *pair_arr = malloc(sizeof(struct pair) * N);
+
+	GHashTableIter iter;
+	gpointer key, value;
+
+	int i = 0;
+	g_hash_table_iter_init (&iter, table);
+	while (g_hash_table_iter_next (&iter, &key, &value)){
+		struct pair zepair;
+		zepair.key = (char *) key;
+		zepair.value = GPOINTER_TO_INT(value);
+		pair_arr[i++] = zepair;
+	}
+
+	qsort(pair_arr, N, sizeof(struct pair), compare_pairs);
+
+	for(i = 0;i<N;i++)
+	{
+		printf("%4d %s\n", pair_arr[i].value, pair_arr[i].key);
+	}
+
+	free(pair_arr);
 }
 
 void notice_window_is_inactive()
