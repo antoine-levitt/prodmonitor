@@ -1,4 +1,4 @@
-//gcc prod.c -o prod -lX11 -lXss -Wall -Wextra $(pkg-config --cflags --libs libwnck-1.0)
+//gcc prod.c -o prod -lX11 -lXss -Wall -Wextra -Wno-unused $(pkg-config --cflags --libs libwnck-1.0)
 #include <X11/Xutil.h>
 #include <X11/Xlib.h>
 #include <stdio.h>
@@ -6,6 +6,7 @@
 #include <X11/extensions/scrnsaver.h>
 #include <time.h>
 #include <unistd.h>
+#include <string.h>
 #define WNCK_I_KNOW_THIS_IS_UNSTABLE
 #include <libwnck/libwnck.h>
 #include <assert.h>
@@ -45,7 +46,7 @@ int getIdleTime () {
 static void print_element(gpointer key, gpointer val, gpointer user)
 {
 	int time = GPOINTER_TO_INT(val);
-	printf("%4d %s\n", time, key);
+	printf("%4d %s\n", time, (char *)key);
 
 }
 
@@ -58,7 +59,7 @@ void print_table()
 void notice_window_is_inactive()
 {
 	assert(current_window);
-	printf("You spent %ds on %s\n", time(NULL) - current_window_since, current_window_name);
+	printf("You spent %lds on %s\n", time(NULL) - current_window_since, current_window_name);
 	gpointer res = g_hash_table_lookup(table, current_window_name);
 	int new_score = (res ? GPOINTER_TO_INT(res) : 0) + time(NULL) - current_window_since;
 	if(res)
@@ -124,15 +125,14 @@ char *getFocusedWindowName()
 	WnckScreen *screen = wnck_screen_get_default();
 	wnck_screen_force_update(screen);
 	WnckWindow *window = wnck_screen_get_active_window(screen);
-	return wnck_window_get_name(window);
+	// do I look like I care about const ?
+	return (char *)wnck_window_get_name(window);
 }
 
 
 int main(int argc, char *argv[])
 {
 	gtk_init(&argc, &argv);
-
-	printf("%d\n", getIdleTime());
 
 	WnckScreen *screen = wnck_screen_get_default();
 	g_signal_connect (screen, "active-window-changed", G_CALLBACK (window_change_callback), NULL);
