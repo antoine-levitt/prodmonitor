@@ -11,6 +11,23 @@
 #include <libwnck/libwnck.h>
 #include <assert.h>
 
+#include <sqlite3.h>
+
+#ifndef DEBUG
+#define DEBUG 0
+#endif
+
+/*
+sqlite commands tests, from ".d" command in sqlite3
+
+PRAGMA foreign_keys=OFF;
+BEGIN TRANSACTION;
+CREATE TABLE stats (id INTEGER PRIMARY KEY, title TEXT, start INT, stop INT);
+INSERT INTO "stats" VALUES(1,'emacs',1272995780,1272995787);
+INSERT INTO "stats" VALUES(2,'iceweasel',1272995787,1272995795);
+COMMIT;
+
+*/
 
 Display *display;
 WnckWindow *current_window = NULL;
@@ -19,6 +36,7 @@ time_t current_window_since;
 gulong handler_id; // id of the handler for window name change events
 GHashTable *table = NULL;
 
+sqlite3 *db;
 
 int error()
 {
@@ -103,6 +121,27 @@ void notice_window_is_inactive()
 	if(res)
 		free(name);
 	print_table();
+
+	/* insert in db */
+	int rc;
+	char *zErrMsg = 0;
+
+	// construct the sql query
+	char *sql_template = "INSERT INTO \"stats\" (title, start, stop) VALUES('%s',%u, %u);";
+	// TODO escape ' in current_window_name
+	int size = strlen(sql_template) - 3*2 + strlen(current_window_name) + 2*10 + 1; // 2 unsigned int in decimal form
+	char *sql = (char*) malloc(sizeof(char)*size);
+	rc = snprintf(sql, size, sql_template, current_window_name, (unsigned int)current_window_since, (unsigned int)time(NULL));
+	assert(rc < size);// if not, the size calculation is wrong
+	if (rc<0) {
+		fprintf(stderr, "ERROR creating sql query. snprintf returned %d\n", rc);
+	}
+
+	// run it
+	rc = sqlite3_exec(db, sql, NULL, 0, &zErrMsg);
+	if (rc<0) {
+		fprintf(stderr, "ERROR executing sql query \"%s\". sqlite3_exec returned %d\n", sql, rc);
+	}
 }
 
 void window_name_change_callback(WnckWindow *win, gpointer user_data)
@@ -132,7 +171,7 @@ void window_change_callback(WnckScreen *screen, WnckWindow *prev_window, gpointe
 	wnck_screen_force_update(screen);
 	WnckWindow *active_window = wnck_screen_get_active_window(screen);
 
-#if 0
+#if DEBUG
 	//debug
 	if(active_window && prev_window) {
 		printf("Leaving %s for %s\n", wnck_window_get_name(prev_window), wnck_window_get_name(active_window));
@@ -186,8 +225,20 @@ int main(int argc, char *argv[])
 
 	table = g_hash_table_new (g_str_hash, g_str_equal);
 
+	/* open sqlite database */
+	char *zErrMsg = 0;
+	int rc;
+	rc = sqlite3_open("test.db", &db);
+	if (rc) {
+		fprintf(stderr, "Can't open database: %s\n", sqlite3_errmsg(db));
+		sqlite3_close(db);
+		exit(1);
+	}
+
 	gtk_main ();
 
+	// TODO : close db on quit
+	//sqlite3_close(db);
 
 	return 0;
 }
