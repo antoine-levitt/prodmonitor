@@ -26,23 +26,6 @@ int error()
 	exit(1);
 }
 
-
-// from somewhere in Teh Internet. In ms
-int getIdleTime () {
-        time_t idle_time;
-        static XScreenSaverInfo *mit_info;
-        Display *display;
-        int screen;
-        mit_info = XScreenSaverAllocInfo();
-        if((display=XOpenDisplay(NULL)) == NULL) { return(-1); }
-        screen = DefaultScreen(display);
-        XScreenSaverQueryInfo(display, RootWindow(display,screen), mit_info);
-        idle_time = (mit_info->idle);
-        XFree(mit_info);
-        XCloseDisplay(display);
-        return idle_time;
-}
-
 struct pair {
 	char *key;
 	int value;
