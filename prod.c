@@ -44,6 +44,34 @@ int error()
 	exit(1);
 }
 
+/* replace each character by replacement in a copy of str */
+char* char_replace(char *str, char character, char *replacement)
+{
+	size_t replacement_size = strlen(replacement);
+	size_t buffer_size = strlen(str)*replacement_size + 1; // max size, if each char of str is character
+	char *buffer = (char*) malloc(sizeof(char)*buffer_size);
+
+	char *str_cursor = str;
+	char *buffer_cursor = buffer;
+	char *new_str_cursor;
+	while ((new_str_cursor = strchr(str_cursor, character))) {
+		// got a character to replace
+		// copy to buffer part of str before the character
+		memcpy(buffer_cursor, str_cursor, new_str_cursor-str_cursor);
+		buffer_cursor += new_str_cursor-str_cursor;
+		// copy the replacement string
+		strcpy(buffer_cursor, replacement);
+		buffer_cursor += replacement_size;
+
+		str_cursor = new_str_cursor + 1;
+	}
+
+	// copy remaining part
+	strcpy(buffer_cursor, str_cursor);
+
+	return buffer;
+}
+
 struct pair {
 	char *key;
 	int value;
@@ -128,16 +156,22 @@ void notice_window_is_inactive()
 
 	// construct the sql query
 	char *sql_template = "INSERT INTO \"stats\" (title, start, stop) VALUES('%s',%u, %u);";
-	// TODO escape ' in current_window_name
-	int size = strlen(sql_template) - 3*2 + strlen(current_window_name) + 2*10 + 1; // 2 unsigned int in decimal form
+	// escape ' in current_window_name
+	char *escaped_window_name = char_replace(current_window_name, '\'', "''");
+
+	size_t size = strlen(sql_template) - 3*2 + strlen(escaped_window_name) + 2*10 + 1; // 2 unsigned int in decimal form
 	char *sql = (char*) malloc(sizeof(char)*size);
-	rc = snprintf(sql, size, sql_template, current_window_name, (unsigned int)current_window_since, (unsigned int)time(NULL));
-	assert(rc < size);// if not, the size calculation is wrong
+	rc = snprintf(sql, size, sql_template, escaped_window_name, (unsigned int)current_window_since, (unsigned int)time(NULL));
+	assert(rc < (int)size);// if not, the size calculation is wrong
 	if (rc<0) {
 		fprintf(stderr, "ERROR creating sql query. snprintf returned %d\n", rc);
 	}
+	free(escaped_window_name);
 
 	// run it
+#if DEBUG
+	printf("Executing sqlite query: %s\n", sql);
+#endif
 	rc = sqlite3_exec(db, sql, NULL, 0, &zErrMsg);
 	if (rc<0) {
 		fprintf(stderr, "ERROR executing sql query \"%s\". sqlite3_exec returned %d\n", sql, rc);
