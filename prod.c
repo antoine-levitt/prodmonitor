@@ -133,6 +133,17 @@ void window_name_change_callback(WnckWindow *win, gpointer user_data)
 		time(&current_window_since);
 	}
 }
+
+void window_leaved()
+{
+	g_signal_handler_disconnect(current_window, handler_id);
+	handler_id = 0;
+	notice_window_is_inactive();
+	current_window = NULL;
+	free(current_window_name);
+	current_window_name = NULL;
+}
+
 void window_change_callback(WnckScreen *screen, WnckWindow *prev_window, gpointer user_data)
 {
 	wnck_screen_force_update(screen);
@@ -154,12 +165,7 @@ void window_change_callback(WnckScreen *screen, WnckWindow *prev_window, gpointe
 		//circumvent wnck bugs: inequality shouldn't happen in
 		//theory. If it does, then the window has been deactivated, so we don't have anything to do
 		if(current_window == prev_window) {
-			g_signal_handler_disconnect(current_window, handler_id);
-			handler_id = 0;
-			notice_window_is_inactive();
-			current_window = NULL;
-			free(current_window_name);
-			current_window_name = NULL;
+			window_leaved();
 		}
 	}
 
@@ -168,13 +174,7 @@ void window_change_callback(WnckScreen *screen, WnckWindow *prev_window, gpointe
 		if(current_window) {
 			// Circumvent wnck bugs ...
 			// We haven't been properly disconnected, so disconnect.
-			// Yeah, I know it's a copy/paste
-			g_signal_handler_disconnect(current_window, handler_id);
-			handler_id = 0;
-			notice_window_is_inactive();
-			current_window = NULL;
-			free(current_window_name);
-			current_window_name = NULL;
+			window_leaved();
 		}
 		current_window = active_window;
 		current_window_name = strdup(wnck_window_get_name(current_window));
