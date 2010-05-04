@@ -1,9 +1,6 @@
-//gcc prod.c -o prod -lX11 -lXss -Wall -Wextra -Wno-unused $(pkg-config --cflags --libs libwnck-1.0)
-#include <X11/Xutil.h>
-#include <X11/Xlib.h>
+//gcc prod.c -o prod -Wall -Wextra -Wno-unused $(pkg-config --cflags --libs libwnck-1.0)
 #include <stdio.h>
 #include <stdlib.h>
-#include <X11/extensions/scrnsaver.h>
 #include <time.h>
 #include <unistd.h>
 #include <string.h>
@@ -12,7 +9,6 @@
 #include <assert.h>
 
 
-Display *display;
 WnckWindow *current_window = NULL;
 char *current_window_name = NULL; //this is a COPY, it has to be created with strdup and free'd
 time_t current_window_since;
@@ -25,24 +21,6 @@ int error()
 	printf("error\n");
 	exit(1);
 }
-
-
-// from somewhere in Teh Internet. In ms
-int getIdleTime () {
-        time_t idle_time;
-        static XScreenSaverInfo *mit_info;
-        Display *display;
-        int screen;
-        mit_info = XScreenSaverAllocInfo();
-        if((display=XOpenDisplay(NULL)) == NULL) { return(-1); }
-        screen = DefaultScreen(display);
-        XScreenSaverQueryInfo(display, RootWindow(display,screen), mit_info);
-        idle_time = (mit_info->idle);
-        XFree(mit_info);
-        XCloseDisplay(display);
-        return idle_time;
-}
-
 struct pair {
 	char *key;
 	int value;
@@ -75,12 +53,12 @@ void print_table()
 
 	qsort(pair_arr, N, sizeof(struct pair), compare_pairs);
 
+	printf("\n");
 	printf("--------------------------------------------------------------------------------\n");
 	for(i = 0;i<N;i++)
 	{
 		printf("%4d %s\n", pair_arr[i].value, pair_arr[i].key);
 	}
-	printf("\n");
 
 	free(pair_arr);
 }
@@ -91,6 +69,8 @@ char *contract_names_list[] = {
 	"Slashdot",
 	"Google Reader",
 	"Facebook",
+	"Google Chrome",
+	"Amarok",
 	".m - Emacs",
 	".tex - Emacs"
 };
