@@ -136,6 +136,7 @@ void notice_window_is_inactive()
 	if (rc<0) {
 		fprintf(stderr, "ERROR creating sql query. snprintf returned %d\n", rc);
 	}
+	free(sql);
 
 	// run it
 	rc = sqlite3_exec(db, sql, NULL, 0, &zErrMsg);
