@@ -14,6 +14,13 @@
 #define DEBUG 0
 #endif
 
+/**
+ * TODO:
+ *  * remove hardoded values, add program parameters
+ *  * remove display code (hashtable and all): this is just a recording program
+ *  * record milliseconds?
+ */
+
 /*
 sqlite commands tests, from ".d" command in sqlite3
 
@@ -33,6 +40,8 @@ gulong handler_id; // id of the handler for window name change events
 GHashTable *table = NULL;
 
 sqlite3 *db;
+char *db_table = "stats";
+
 
 int error()
 {
@@ -66,6 +75,83 @@ char* char_replace(char *str, char character, char *replacement)
 	strcpy(buffer_cursor, str_cursor);
 
 	return buffer;
+}
+
+int db_check_table_exists()
+{
+	int rc;
+	sqlite3_stmt *stmt;
+
+	// construct the sql query
+	char *sql_template = "SELECT count(*) FROM sqlite_master WHERE name='%s'";
+
+	size_t size = strlen(sql_template) - 2 + strlen(db_table) + 1;
+	char *sql = (char*) malloc(sizeof(char)*size);
+	rc = snprintf(sql, size, sql_template, db_table);
+	assert(rc < (int)size);// if not, the size calculation is wrong
+	if (rc<0) {
+		fprintf(stderr, "ERROR creating sql query. snprintf returned %d\n", rc);
+	}
+
+	// run it
+#if DEBUG
+	printf("Executing sqlite query: %s\n", sql);
+#endif
+	rc = sqlite3_prepare_v2(db, sql, size, &stmt, NULL);
+	if (rc != SQLITE_OK) {
+		fprintf(stderr, "ERROR preparing sql query \"%s\". sqlite3_prepare_v2 returned %d.\n", sql, rc);
+	}
+
+	rc = sqlite3_step(stmt);
+
+	if (rc != SQLITE_ROW) {
+		fprintf(stderr, "ERROR executing sql query \"%s\". sqlite3_step returned %d.\n", sql, rc);
+	}
+
+	int number_of_tables = sqlite3_column_int(stmt, 0);
+
+	rc = sqlite3_finalize(stmt);
+	if (rc != SQLITE_OK) {
+		fprintf(stderr, "ERROR finalizing sql query \"%s\". sqlite3_finalize returned %d.\n", sql, rc);
+	}
+
+	free(sql);
+
+	return number_of_tables;
+}
+
+int db_create_table()
+{
+	int rc;
+	char *zErrMsg = 0;
+
+	// construct the sql query
+	char *sql_template = "CREATE TABLE %s (id INTEGER PRIMARY KEY, title TEXT, start INT, stop INT);";
+
+	size_t size = strlen(sql_template) - 2 + strlen(db_table) + 1;
+	char *sql = (char*) malloc(sizeof(char)*size);
+	rc = snprintf(sql, size, sql_template, db_table);
+	assert(rc < (int)size);// if not, the size calculation is wrong
+	if (rc<0) {
+		fprintf(stderr, "ERROR creating sql query. snprintf returned %d\n", rc);
+	}
+
+	// run it
+#if DEBUG
+	printf("Executing sqlite query: %s\n", sql);
+#endif
+	rc = sqlite3_exec(db, sql, NULL, 0, &zErrMsg);
+#if DEBUG
+	printf("Result: %d\n", rc);
+#endif
+	if (rc != SQLITE_OK) {
+		fprintf(stderr, "ERROR executing sql query \"%s\". sqlite3_exec returned %d. Error: %s\n", sql, rc, zErrMsg);
+		sqlite3_free(zErrMsg);
+	}
+
+	free(sql);
+
+	return rc;
 }
 
 struct pair {
@@ -146,12 +232,13 @@ void notice_window_is_inactive()
 		free(name);
 	print_table();
 
+
 	/* insert in db */
 	int rc;
 	char *zErrMsg = 0;
 
 	// construct the sql query
-	char *sql_template = "INSERT INTO \"stats\" (title, start, stop) VALUES('%s',%u, %u);";
+	char *sql_template = "INSERT INTO \"stats\" (title, start, stop) VALUES ('%s',%u, %u);";
 	// escape ' in current_window_name
 	char *escaped_window_name = char_replace(current_window_name, '\'', "''");
 
@@ -169,8 +256,12 @@ void notice_window_is_inactive()
 	printf("Executing sqlite query: %s\n", sql);
 #endif
 	rc = sqlite3_exec(db, sql, NULL, 0, &zErrMsg);
-	if (rc<0) {
-		fprintf(stderr, "ERROR executing sql query \"%s\". sqlite3_exec returned %d\n", sql, rc);
+#if DEBUG
+	printf("Result: %d\n", rc);
+#endif
+	if (rc != SQLITE_OK) {
+		fprintf(stderr, "ERROR executing sql query \"%s\". sqlite3_exec returned %d. Error: %s\n", sql, rc, zErrMsg);
+		sqlite3_free(zErrMsg);
 	}
 	free(sql);
 }
@@ -264,6 +355,14 @@ int main(int argc, char *argv[])
 		fprintf(stderr, "Can't open database: %s\n", sqlite3_errmsg(db));
 		sqlite3_close(db);
 		exit(1);
+	}
+
+	if (!db_check_table_exists()) {
+		rc = db_create_table();
+		if (rc != SQLITE_OK) {
+			// no table, and not able to create it
+			return rc;
+		}
 	}
 
 	gtk_main ();
