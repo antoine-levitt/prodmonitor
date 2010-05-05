@@ -1,9 +1,6 @@
-//gcc prod.c -o prod -lX11 -lXss -Wall -Wextra -Wno-unused $(pkg-config --cflags --libs libwnck-1.0)
-#include <X11/Xutil.h>
-#include <X11/Xlib.h>
+//gcc prod.c -o prod -Wall -Wextra -Wno-unused $(pkg-config --cflags --libs libwnck-1.0) -llibsqlite3
 #include <stdio.h>
 #include <stdlib.h>
-#include <X11/extensions/scrnsaver.h>
 #include <time.h>
 #include <unistd.h>
 #include <string.h>
@@ -29,7 +26,6 @@ COMMIT;
 
 */
 
-Display *display;
 WnckWindow *current_window = NULL;
 char *current_window_name = NULL; //this is a COPY, it has to be created with strdup and free'd
 time_t current_window_since;
