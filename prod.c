@@ -77,56 +77,13 @@ char* char_replace(char *str, char character, char *replacement)
 	return buffer;
 }
 
-int db_check_table_exists()
-{
-	int rc;
-	sqlite3_stmt *stmt;
-
-	// construct the sql query
-	char *sql_template = "SELECT count(*) FROM sqlite_master WHERE name='%s'";
-
-	size_t size = strlen(sql_template) - 2 + strlen(db_table) + 1;
-	char *sql = (char*) malloc(sizeof(char)*size);
-	rc = snprintf(sql, size, sql_template, db_table);
-	assert(rc < (int)size);// if not, the size calculation is wrong
-	if (rc<0) {
-		fprintf(stderr, "ERROR creating sql query. snprintf returned %d\n", rc);
-	}
-
-	// run it
-#if DEBUG
-	printf("Executing sqlite query: %s\n", sql);
-#endif
-	rc = sqlite3_prepare_v2(db, sql, size, &stmt, NULL);
-	if (rc != SQLITE_OK) {
-		fprintf(stderr, "ERROR preparing sql query \"%s\". sqlite3_prepare_v2 returned %d.\n", sql, rc);
-	}
-
-	rc = sqlite3_step(stmt);
-
-	if (rc != SQLITE_ROW) {
-		fprintf(stderr, "ERROR executing sql query \"%s\". sqlite3_step returned %d.\n", sql, rc);
-	}
-
-	int number_of_tables = sqlite3_column_int(stmt, 0);
-
-	rc = sqlite3_finalize(stmt);
-	if (rc != SQLITE_OK) {
-		fprintf(stderr, "ERROR finalizing sql query \"%s\". sqlite3_finalize returned %d.\n", sql, rc);
-	}
-
-	free(sql);
-
-	return number_of_tables;
-}
-
-int db_create_table()
+int db_create_table_if_not_exists()
 {
 	int rc;
 	char *zErrMsg = 0;
 
 	// construct the sql query
-	char *sql_template = "CREATE TABLE %s (id INTEGER PRIMARY KEY, title TEXT, start INT, stop INT);";
+	char *sql_template = "CREATE TABLE IF NOT EXISTS %s (id INTEGER PRIMARY KEY, title TEXT, start INT, stop INT);";
 
 	size_t size = strlen(sql_template) - 2 + strlen(db_table) + 1;
 	char *sql = (char*) malloc(sizeof(char)*size);
@@ -153,6 +110,7 @@ int db_create_table()
 
 	return rc;
 }
+
 
 struct pair {
 	char *key;
@@ -357,12 +315,11 @@ int main(int argc, char *argv[])
 		exit(1);
 	}
 
-	if (!db_check_table_exists()) {
-		rc = db_create_table();
-		if (rc != SQLITE_OK) {
-			// no table, and not able to create it
-			return rc;
-		}
+
+	rc = db_create_table_if_not_exists();
+	if (rc != SQLITE_OK) {
+		// no table, and not able to create it
+		return rc;
 	}
 
 	gtk_main ();
