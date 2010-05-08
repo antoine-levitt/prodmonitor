@@ -16,19 +16,12 @@
 
    <p id="choices">Show:</p>
 
-   <p class="stackControls">
-    <input type="button" value="With stacking">
-    <input type="button" value="Without stacking">
+   <p class="toggleControls">
+    <input class="stacking" type="button" value="stacking">
+    <input class="linesBars" type="button" value="Lines/Bars">
+    <input class="legend" type="button" value="legend">
    </p>
 
-   <p class="graphControls">
-    <input type="button" value="Bars">
-    <input type="button" value="Lines">
-   </p>
-
-   <p class="legendControls">
-     <input type="button" value="Toggle Legend">
-   </p>
 
 <script id="source" language="javascript" type="text/javascript">
 $(function () {
@@ -61,7 +54,8 @@ $(function () {
 
     var data = [];
 
-    var stack = null, bars = false, lines = true;
+    var stack = null;
+    var linesBars = true;
     var legend = true;
 
     var options = {
@@ -69,8 +63,8 @@ $(function () {
 	grid: { markings: weekendAreas },
 	series: {
 	    stack: stack,
-	    bars: { show: bars, align: "left", barWidth: 15*60*1000 },
-	    lines: { show: lines }
+	    bars: { show: !linesBars, align: "left", barWidth: 15*60*1000 },
+	    lines: { show: linesBars }
 	},
 	legend: {
 	    show: legend,
@@ -121,20 +115,24 @@ $(function () {
 	plot();
     }
 
-    $(".stackControls input").click(function (e) {
+    $(".toggleControls input.stacking").click(function (e) {
 	e.preventDefault();
-	stack = $(this).val() == "With stacking" ? true : null;
-	plotWithOptions();
+	// toggle value
+	stack = stack ? null: true;
+	options["series"]["stack"] = stack;
+	plot();
     });
-    $(".graphControls input").click(function (e) {
+    $(".toggleControls input.linesBars").click(function (e) {
 	e.preventDefault();
-	bars = $(this).val().indexOf("Bars") != -1;
-	lines = $(this).val().indexOf("Lines") != -1;
-	plotWithOptions();
+	// toggle value
+	linesBars = !linesBars;
+	options["series"]["lines"]["show"] = linesBars;
+	options["series"]["bars"]["show"] = !linesBars;
+	plot();
     });
 
     /* setup legend controls */
-    $(".legendControls input").click(function (e) {
+    $(".toggleControls input.legend").click(function (e) {
 	e.preventDefault();
 	// toggle value
 	legend = !legend;
