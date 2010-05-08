@@ -4,9 +4,11 @@
 class Chart:
     """Class handling charts (build and write to file)."""
 
-    def __init__(self):
-        self.series = dict()
+    def __init__(self, width):
+        """Create a Chart object with width entries."""
+        self.series = {}
         self.series_label = []
+        self.width = width
 
     def add(self, title, start, stop, switchs_count, time_spent):
         """Add entries to chart."""
@@ -22,7 +24,7 @@ class Chart:
 
     def write_file(self, filename):
         """Write the charts file."""
-        all_series = "var datasets = {\n"
+        datasets = "var datasets = {\n"
         output = ""
         count = 0
         for title in self.series_label:
@@ -32,13 +34,14 @@ class Chart:
             # add series
             # TODO escape " from title, or do it when retrieve it?
             if count > 1:
-                all_series += ",\n"
-            all_series += "  \"%s\": { label: \"%s\", data: d%s }" % (title, title, count)
+                datasets += ",\n"
+            datasets += "  \"%s\": { label: \"%s\", data: d%s }" % (title, title, count)
 
-        all_series += "\n};"
+        datasets += "\n};"
+        barWidth = "var barWidth = %d;" % (self.width*1000)
 
         f = open(filename, 'w')
-        f.write(output + "\n\n" + all_series)
+        f.write(output + "\n\n" + datasets + "\n\n" + barWidth)
         f.close()
 
     

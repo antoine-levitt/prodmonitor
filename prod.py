@@ -45,8 +45,8 @@ print "All entries, count=%d" % len(allentries)
 
 
 # lets go
-chart = Chart()
 step = 15*60 # stats 15mins
+chart = Chart(step)
 #TODO sync on round times?
 #TODO add to data entries that overlap one limit, or both
 
