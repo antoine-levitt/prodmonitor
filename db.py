@@ -22,10 +22,10 @@ def select_all():
     return c.fetchall()
 
 
-def select(title):
+def select(title, start, stop):
     """Return entries matching title."""
 
-    c.execute("select title, start, stop from %s where title like :title" % table, {"title": title})
+    c.execute("select title, start, stop from %s where title like :title and start >= :start and stop <= :stop" % table, {"title": title, "start": start, "stop": stop})
 
     return c.fetchall()
 
