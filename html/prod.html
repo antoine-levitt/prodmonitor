@@ -16,7 +16,8 @@
 
 <script id="source" language="javascript" type="text/javascript">
 $(function () {
-    //$.plot($("#placeholder"), all_series, { xaxis: { mode: "time", timeformat: "%y/%m/%d %H:%M:%S" } });
+    // TODO fix max y when add/remove series
+    var options = { xaxis: { mode: "time", timeformat: "%y/%m/%d %H:%M:%S" } };
 
     // hard-code color indices to prevent them from shifting as
     // countries are turned on/off
@@ -47,10 +48,7 @@ $(function () {
 	});
 
 	if (data.length > 0)
-	    $.plot($("#placeholder"), data, {
-		yaxis: { min: 0 },
-		xaxis: { tickDecimals: 0 }
-	    });
+	    $.plot($("#placeholder"), data, options);
     }
 
     plotAccordingToChoices();
