@@ -10,7 +10,7 @@ def connect(databasename, tablename):
     table = tablename
 
     conn = sqlite3.connect(databasename)
-    conn.row_factory = sqlite3.Row
+    #conn.row_factory = sqlite3.Row
     c = conn.cursor()
 
 
@@ -28,6 +28,58 @@ def select(title, start, stop):
     c.execute("select title, start, stop from %s where title like :title and start >= :start and stop <= :stop" % table, {"title": title, "start": start, "stop": stop})
 
     return c.fetchall()
+
+
+def select_stats(titles, start, stop):
+    """Return stats entries grouped by titles."""
+
+    print "start: %d, stop: %d" % (start, stop)
+    sql_titles_like = ""
+    sql_dict = {"start": start, "stop": stop}
+    for i, title in enumerate(titles):
+        if i > 0:
+            sql_titles_like += ", "
+        titlename = "title%d" % i
+        sql_titles_like += "title like :%s" % titlename
+        sql_dict[titlename] = title
+
+    sql = "select count(*), sum(stop-start), %s, title from %s where start >= :start and stop <= :stop group by %s" % (sql_titles_like, table, sql_titles_like)
+
+    c.execute(sql, sql_dict)
+    result = c.fetchall()
+
+    if len(result) == 0:
+        return {}
+
+    # we now have a boolean list on each row that says witch title it matched, preceded by the stats data
+    # build the clean results as dict
+    count = 0
+    result_dict = {}
+    # first row is "other", unless every entry has been matched by titles
+    if sum(result[count][2:-1]) == 0:
+        result_dict["Other"] = (result[count][0], result[count][1])
+        count += 1
+    # other rows are in reverse order of titles
+    i_title = list(enumerate(titles))
+    i_title.reverse()
+    for i, title in i_title:
+        if count >= len(result):
+            # finished, so remaining titles were not matched
+            break
+        print count, i, title, result[count]
+        # but maybe there was no match for a title, in which case sqlite returns nothing
+        if result[count][2+i] == 0:
+            # this is the case for this title
+            continue
+        # we have our title match
+        assert result[count][2+i] == 1, (count, result[count]) # check this fact
+        result_dict[title] = (result[count][0], result[count][1])
+        count += 1
+
+    assert len(result) == len(result_dict), (len(result), len(result_dict), result, result_dict)
+    #TODO Fix this: if one real title match two given titles, this breaks everything... should we count them for each match title?
+
+    return result_dict
 
 
 def close():

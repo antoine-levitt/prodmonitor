@@ -17,7 +17,7 @@ if len(sys.argv) < 1:
     print "Usage : prod.py [<start date> [<stop date>]]"
     sys.exit(1)
 
-titles = ["%Google Chrome", "%Iceweasel", "XChat%", "Guake!"]
+titles = ["%Google Chrome", "%Iceweasel", "XChat%", "Guake!", "%emacs@kiwi-pc2", "%SMPlayer", "%Sauerbraten"]
 
 # by default: select all
 start_date = 0
@@ -41,12 +41,20 @@ print "All entries, count=%d" % len(allentries)
 # lets go
 chart = Chart()
 step = 15*60 # stats 15mins
+#TODO sync on round times?
+#TODO add to data entries that overlap one limit, or both
 
 for date in range(start_date, stop_date, step):
+
+    data = db.select_stats(titles, date, date+step-1)
     for title in titles:
-        entries = db.select(title, date, date+step-1)
-        switchs_count, time_spent = stats.stats(entries)
-        chart.add(title, date, date+step-1, time_spent, switchs_count)
+        if title in data:
+            switchs_count = data[title][0]
+            time_spent = data[title][1]
+        else:
+            switchs_count = 0
+            time_spent = 0
+        chart.add(title, date, date+step-1, switchs_count, time_spent)
 
 
 

@@ -8,7 +8,7 @@ class Chart:
         self.series = dict()
         self.series_label = []
 
-    def add(self, title, start, stop, time_spent, switchs_count):
+    def add(self, title, start, stop, switchs_count, time_spent):
         """Add entries to chart."""
         if not title in self.series:
             self.series_label.append(title)
@@ -22,7 +22,6 @@ class Chart:
 
     def write_file(self, filename):
         """Write the charts file."""
-        #TODO keep the order of first creation... to keep same colors for same titles
         all_series = "var all_series = [\n"
         output = ""
         count = 0
