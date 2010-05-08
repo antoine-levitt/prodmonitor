@@ -22,7 +22,7 @@ class Chart:
 
     def write_file(self, filename):
         """Write the charts file."""
-        all_series = "var all_series = [\n"
+        all_series = "var datasets = {\n"
         output = ""
         count = 0
         for title in self.series_label:
@@ -33,9 +33,9 @@ class Chart:
             # TODO escape " from title, or do it when retrieve it?
             if count > 1:
                 all_series += ",\n"
-            all_series += "  { label: \"%s\", data: d%s }" % (title, count) 
+            all_series += "  \"%s\": { label: \"%s\", data: d%s }" % (title, title, count)
 
-        all_series += "\n];"
+        all_series += "\n};"
 
         f = open(filename, 'w')
         f.write(output + "\n\n" + all_series)
