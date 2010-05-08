@@ -7,12 +7,24 @@
     <!--[if IE]><script language="javascript" type="text/javascript" src="excanvas.min.js"></script><![endif]-->
     <script language="javascript" type="text/javascript" src="jquery.min.js"></script>
     <script language="javascript" type="text/javascript" src="jquery.flot.min.js"></script>
+    <script language="javascript" type="text/javascript" src="jquery.flot.stack.min.js"></script>
     <script language="javascript" type="text/javascript" src="data.js"></script>
  </head>
  <body>
    <h1>Prod data - Flot chart</h1>
    <div id="placeholder" style="width:1280px;height:600px;"></div>
+
    <p id="choices">Show:</p>
+
+   <p class="stackControls">
+    <input type="button" value="With stacking">
+    <input type="button" value="Without stacking">
+   </p>
+
+   <p class="graphControls">
+    <input type="button" value="Bars">
+    <input type="button" value="Lines">
+   </p>
 
 <script id="source" language="javascript" type="text/javascript">
 $(function () {
@@ -38,10 +50,27 @@ $(function () {
 	return markings;
     }
 
+    function plot() {
+	$.plot($("#placeholder"), data, options);
+    }
+
+
+    var data = [];
+
+    var stack = null, bars = false, lines = true;
+
     var options = {
 	xaxis: { mode: "time", timeformat: "%y/%m/%d %H:%M:%S"},
-	grid: { markings: weekendAreas }
+	grid: { markings: weekendAreas },
+	series: {
+	    stack: stack,
+	    bars: { show: bars, align: "left", barWidth: 15*60*1000 },
+	    lines: { show: lines }
+	}
     };
+
+
+    /* setup series choice */
     // hard-code color indices to prevent them from shifting as
     // countries are turned on/off
     var i = 0;
@@ -62,19 +91,37 @@ $(function () {
 
 
     function plotAccordingToChoices() {
-	var data = [];
-
+	data = [];
 	choiceContainer.find("input:checked").each(function () {
 	    var key = $(this).attr("name");
 	    if (key && datasets[key])
 		data.push(datasets[key]);
 	});
 
-	if (data.length > 0)
-	    $.plot($("#placeholder"), data, options);
+	plot();
+    }
+    plotAccordingToChoices();
+
+
+    /* setup bar/lines stack/nostack */
+    function plotWithOptions() {
+	options["series"]["stack"] = stack;
+	options["series"]["bars"]["show"] = bars;
+	options["series"]["lines"]["show"] = lines;
+	plot();
     }
 
-    plotAccordingToChoices();
+    $(".stackControls input").click(function (e) {
+	e.preventDefault();
+	stack = $(this).val() == "With stacking" ? true : null;
+	plotWithOptions();
+    });
+    $(".graphControls input").click(function (e) {
+	e.preventDefault();
+	bars = $(this).val().indexOf("Bars") != -1;
+	lines = $(this).val().indexOf("Lines") != -1;
+	plotWithOptions();
+    });
 });
 </script>
 
