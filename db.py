@@ -30,13 +30,13 @@ def select(title, start, stop):
     return c.fetchall()
 
 
-def select_stats(titles, start, stop):
+def select_stats(titles_name, titles_match, start, stop):
     """Return stats entries grouped by titles."""
 
     print "start: %d, stop: %d" % (start, stop)
     sql_titles_like = ""
     sql_dict = {"start": start, "stop": stop}
-    for i, title in enumerate(titles):
+    for i, title in enumerate(titles_match):
         if i > 0:
             sql_titles_like += ", "
         titlename = "title%d" % i
@@ -60,7 +60,7 @@ def select_stats(titles, start, stop):
         result_dict["Other"] = (result[count][0], result[count][1])
         count += 1
     # other rows are in reverse order of titles
-    i_title = list(enumerate(titles))
+    i_title = list(enumerate(titles_name))
     i_title.reverse()
     for i, title in i_title:
         if count >= len(result):
@@ -78,6 +78,8 @@ def select_stats(titles, start, stop):
 
     assert len(result) == len(result_dict), (len(result), len(result_dict), result, result_dict)
     #TODO Fix this: if one real title match two given titles, this breaks everything... should we count them for each match title?
+
+    print result_dict
 
     return result_dict
 
