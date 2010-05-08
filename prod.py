@@ -47,7 +47,9 @@ step = 15*60 # stats 15mins
 for date in range(start_date, stop_date, step):
 
     data = db.select_stats(titles, date, date+step-1)
-    for title in titles:
+    titles_other = list(titles)
+    titles_other.append("Other")
+    for title in titles_other:
         if title in data:
             switchs_count = data[title][0]
             time_spent = data[title][1]
