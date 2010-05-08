@@ -26,6 +26,10 @@
     <input type="button" value="Lines">
    </p>
 
+   <p class="legendControls">
+     <input type="button" value="Toggle Legend">
+   </p>
+
 <script id="source" language="javascript" type="text/javascript">
 $(function () {
     // TODO fix max y when add/remove series
@@ -58,6 +62,7 @@ $(function () {
     var data = [];
 
     var stack = null, bars = false, lines = true;
+    var legend = true;
 
     var options = {
 	xaxis: { mode: "time", timeformat: "%y/%m/%d %H:%M:%S"},
@@ -66,6 +71,11 @@ $(function () {
 	    stack: stack,
 	    bars: { show: bars, align: "left", barWidth: 15*60*1000 },
 	    lines: { show: lines }
+	},
+	legend: {
+	    show: legend,
+	    position: "nw",
+	    backgroundOpacity: 1
 	}
     };
 
@@ -121,6 +131,15 @@ $(function () {
 	bars = $(this).val().indexOf("Bars") != -1;
 	lines = $(this).val().indexOf("Lines") != -1;
 	plotWithOptions();
+    });
+
+    /* setup legend controls */
+    $(".legendControls input").click(function (e) {
+	e.preventDefault();
+	// toggle value
+	legend = !legend;
+	options["legend"]["show"] = legend;
+	plot();
     });
 });
 </script>
