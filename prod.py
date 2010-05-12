@@ -58,13 +58,7 @@ for date in range(start_date, stop_date, step):
     titles_name2 = titles_name[:]
     titles_name2.append("Other")
     for title in titles_name2:
-        if title in data:
-            switchs_count = data[title][0]
-            time_spent = data[title][1]
-        else:
-            switchs_count = 0
-            time_spent = 0
-        chart.add(title, date, date+step-1, switchs_count, time_spent)
+        chart.add(title, date, date+step-1, data[title]["count"], data[title]["time"])
 
 
 
