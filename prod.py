@@ -3,7 +3,6 @@
 import sys
 import time
 import db
-import stats
 from charts import Chart
 
 # config
