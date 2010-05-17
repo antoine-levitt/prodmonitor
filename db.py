@@ -14,6 +14,16 @@ def connect(databasename, tablename):
     c = conn.cursor()
 
 
+def get_first_date():
+    """Return the first date available."""
+
+    c.execute("select start from %s order by start asc limit 1" % table)
+
+    result = c.fetchall()
+
+    return result[0][0]
+
+
 def select_all():
     """Return all entries."""
 
