@@ -9,6 +9,8 @@
 #include <assert.h>
 
 #include <sqlite3.h>
+#include <signal.h>
+
 
 #ifndef DEBUG
 #define DEBUG 0
@@ -296,9 +298,20 @@ char *getFocusedWindowName()
 }
 
 
+void sigquit_handler(int sig)
+{
+	gtk_main_quit ();
+}
+
+
 int main(int argc, char *argv[])
 {
 	gtk_init(&argc, &argv);
+
+	/* register signal handlers, to properly quit */
+	(void) signal(SIGINT,sigquit_handler);
+	(void) signal(SIGQUIT,sigquit_handler);
+	(void) signal(SIGTERM,sigquit_handler);
 
 	WnckScreen *screen = wnck_screen_get_default();
 	g_signal_connect (screen, "active-window-changed", G_CALLBACK (window_change_callback), NULL);
@@ -324,8 +337,12 @@ int main(int argc, char *argv[])
 
 	gtk_main ();
 
-	// TODO : close db on quit
-	//sqlite3_close(db);
+	/* quit */
+	/* save last switch */
+	notice_window_is_inactive();
+	/* close db */
+	sqlite3_close(db);
+	printf("End\n");
 
 	return 0;
 }
