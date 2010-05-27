@@ -335,6 +335,8 @@ int main(int argc, char *argv[])
 		return rc;
 	}
 
+	printf("Start\n");
+
 	gtk_main ();
 
 	/* quit */
@@ -342,6 +344,7 @@ int main(int argc, char *argv[])
 	notice_window_is_inactive();
 	/* close db */
 	sqlite3_close(db);
+
 	printf("End\n");
 
 	return 0;
