@@ -11,8 +11,8 @@ char *current_window_name = NULL; //this is a COPY, it has to be created with st
 gulong handler_id; // id of the handler for window name change events
 
 
-void (*enter_callback)(const char* window_name) = NULL;
-void (*leave_callback)(const char* window_name) = NULL;
+callback_function enter_callback = NULL;
+callback_function leave_callback = NULL;
 
 
 void window_name_change_callback(WnckWindow *win, gpointer user_data)
@@ -86,7 +86,7 @@ char *getFocusedWindowName()
 }
 
 
-void windowswitchs_init(void (*enter_window_callback)(const char* window_name), void (*leave_window_callback)(const char* window_name))
+void windowswitchs_init(callback_function enter_window_callback, callback_function leave_window_callback)
 {
 	int argc = 0;
 	char** argv = NULL;
