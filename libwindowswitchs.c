@@ -1,3 +1,19 @@
+// libwindowswitchs.c
+
+// Copyright (C) 2010 Antoine Levitt
+// Copyright (C) 2010 Thomas Riccardi
+
+// Author: Antoine Levitt
+//         Thomas Riccardi <riccardi.thomas@gmail.com>
+// URL: http://github.com/antoine-levitt/prodmonitor/tree/sqlite
+
+// This program is free software. It comes without any warranty, to
+// the extent permitted by applicable law. You can redistribute it
+// and/or modify it under the terms of the Do What The Fuck You Want
+// To Public License, Version 2, as published by Sam Hocevar. See
+// http://sam.zoy.org/wtfpl/COPYING for more details.
+
+
 #include <stdlib.h>
 #include <string.h>
 #define WNCK_I_KNOW_THIS_IS_UNSTABLE
