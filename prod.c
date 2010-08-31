@@ -19,13 +19,14 @@
 #include <time.h>
 #include <unistd.h>
 #include <string.h>
-#define WNCK_I_KNOW_THIS_IS_UNSTABLE
-#include <libwnck/libwnck.h>
-#include <assert.h>
+#include <signal.h>
+#include <glib.h>
+
+#include "libwindowswitchs.h"
 
 #include <sqlite3.h>
 #include <signal.h>
-
+#include <assert.h>
 
 #ifndef DEBUG
 #define DEBUG 0
@@ -50,30 +51,21 @@ COMMIT;
 
 */
 
-WnckWindow *current_window = NULL;
-char *current_window_name = NULL; //this is a COPY, it has to be created with strdup and free'd
 time_t current_window_since;
-gulong handler_id; // id of the handler for window name change events
 GHashTable *table = NULL;
 
 sqlite3 *db;
 char *db_table = "stats";
 
 
-int error()
-{
-	printf("error\n");
-	exit(1);
-}
-
 /* replace each character by replacement in a copy of str */
-char* char_replace(char *str, char character, char *replacement)
+char* char_replace(const char *str, const char character, const char *replacement)
 {
 	size_t replacement_size = strlen(replacement);
 	size_t buffer_size = strlen(str)*replacement_size + 1; // max size, if each char of str is character
 	char *buffer = (char*) malloc(sizeof(char)*buffer_size);
 
-	char *str_cursor = str;
+	const char *str_cursor = str;
 	char *buffer_cursor = buffer;
 	char *new_str_cursor;
 	while ((new_str_cursor = strchr(str_cursor, character))) {
@@ -161,12 +153,12 @@ void print_table()
 
 	qsort(pair_arr, N, sizeof(struct pair), compare_pairs);
 
+	printf("\n");
 	printf("--------------------------------------------------------------------------------\n");
 	for(i = 0;i<N;i++)
 	{
 		printf("%4d %s\n", pair_arr[i].value, pair_arr[i].key);
 	}
-	printf("\n");
 
 	free(pair_arr);
 }
@@ -177,11 +169,13 @@ char *contract_names_list[] = {
 	"Slashdot",
 	"Google Reader",
 	"Facebook",
+	"Google Chrome",
+	"Amarok",
 	".m - Emacs",
 	".tex - Emacs"
 };
 //return a new string, post-processed
-char *post_process_names(char *win_name)
+char *post_process_names(const char *win_name)
 {
 	int i;
 	int N = sizeof(contract_names_list)/sizeof(*contract_names_list);
@@ -193,14 +187,20 @@ char *post_process_names(char *win_name)
 	return strdup(win_name);
 }
 
-void notice_window_is_inactive()
+void enter_window(const char* window_name)
 {
-	assert(current_window);
-	char *name = post_process_names(current_window_name);
-	//printf("You spent %lds on %s\n", time(NULL) - current_window_since, current_window_name);
+	// start time for this new window
+	time(&current_window_since);
+}
+
+void leave_window(const char* window_name)
+{
+	char *name = post_process_names(window_name);
+	//printf("You spent %lds on %s\n", time(NULL) - current_window_since, window_name);
 
 	gpointer res = g_hash_table_lookup(table, name);
 	int new_score = (res ? GPOINTER_TO_INT(res) : 0) + time(NULL) - current_window_since;
+
 	g_hash_table_insert(table, name, GINT_TO_POINTER(new_score));
 	// if there was already a key, we did the copy for nothing
 	if(res)
@@ -214,8 +214,8 @@ void notice_window_is_inactive()
 
 	// construct the sql query
 	char *sql_template = "INSERT INTO \"stats\" (title, start, stop) VALUES ('%s',%u, %u);";
-	// escape ' in current_window_name
-	char *escaped_window_name = char_replace(current_window_name, '\'', "''");
+	// escape ' in window_name
+	char *escaped_window_name = char_replace(window_name, '\'', "''");
 
 	size_t size = strlen(sql_template) - 3*2 + strlen(escaped_window_name) + 2*10 + 1; // 2 unsigned int in decimal form
 	char *sql = (char*) malloc(sizeof(char)*size);
@@ -241,97 +241,24 @@ void notice_window_is_inactive()
 	free(sql);
 }
 
-void window_name_change_callback(WnckWindow *win, gpointer user_data)
-{
-	//printf("Name change callback, %d\n", win);
-	if(win) {
-		assert(win == current_window);
-		notice_window_is_inactive();
-		free(current_window_name);
-		current_window_name = strdup(wnck_window_get_name(win));
-		time(&current_window_since);
-	}
-}
-
-void window_leaved()
-{
-	g_signal_handler_disconnect(current_window, handler_id);
-	handler_id = 0;
-	notice_window_is_inactive();
-	current_window = NULL;
-	free(current_window_name);
-	current_window_name = NULL;
-}
-
-void window_change_callback(WnckScreen *screen, WnckWindow *prev_window, gpointer user_data)
-{
-	wnck_screen_force_update(screen);
-	WnckWindow *active_window = wnck_screen_get_active_window(screen);
-
-#if DEBUG
-	//debug
-	if(active_window && prev_window) {
-		printf("Leaving %s for %s\n", wnck_window_get_name(prev_window), wnck_window_get_name(active_window));
-	}
-	else
-	{
-		printf("Active %d, prev %d\n", active_window, prev_window);
-	}
-#endif
-
-	// leaving a window
-	if(prev_window) {
-		//circumvent wnck bugs: inequality shouldn't happen in
-		//theory. If it does, then the window has been deactivated, so we don't have anything to do
-		if(current_window == prev_window) {
-			window_leaved();
-		}
-	}
-
-	// entering a window
-	if(active_window) {
-		if(current_window) {
-			// Circumvent wnck bugs ...
-			// We haven't been properly disconnected, so disconnect.
-			window_leaved();
-		}
-		current_window = active_window;
-		current_window_name = strdup(wnck_window_get_name(current_window));
-		time(&current_window_since);
-		//register for name changes
-		assert(!handler_id);
-		handler_id = g_signal_connect(active_window, "name-changed", G_CALLBACK (window_name_change_callback), NULL);
-	}
-}
-char *getFocusedWindowName()
-{
-	WnckScreen *screen = wnck_screen_get_default();
-	wnck_screen_force_update(screen);
-	WnckWindow *window = wnck_screen_get_active_window(screen);
-	// do I look like I care about const ?
-	return (char *)wnck_window_get_name(window);
-}
-
-
 void sigquit_handler(int sig)
 {
-	gtk_main_quit ();
+	windowswitchs_stop();
 }
 
 
 int main(int argc, char *argv[])
 {
-	gtk_init(&argc, &argv);
+	// init libwindowswitchs
+	windowswitchs_init(&enter_window, &leave_window);
 
 	/* register signal handlers, to properly quit */
 	(void) signal(SIGINT,sigquit_handler);
 	(void) signal(SIGQUIT,sigquit_handler);
 	(void) signal(SIGTERM,sigquit_handler);
 
-	WnckScreen *screen = wnck_screen_get_default();
-	g_signal_connect (screen, "active-window-changed", G_CALLBACK (window_change_callback), NULL);
-
 	table = g_hash_table_new (g_str_hash, g_str_equal);
+	time(&current_window_since);
 
 	/* open sqlite database */
 	char *zErrMsg = 0;
@@ -352,11 +279,10 @@ int main(int argc, char *argv[])
 
 	printf("Start\n");
 
-	gtk_main ();
+	windowswitchs_start();
+
 
 	/* quit */
-	/* save last switch */
-	notice_window_is_inactive();
 	/* close db */
 	sqlite3_close(db);
 
