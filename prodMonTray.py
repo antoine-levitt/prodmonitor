@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 # -*- coding: utf-8 -*-
 
 # program for traybar icone: start and stop ./prod record daemon
@@ -97,9 +97,9 @@ class ProdMonTray():
     """ProdMonTray main class. Creates the tray icon, and handle global shortcut."""
     def __init__(self):
         # options
-        self.keystr = "<Super>X"
+        self.keystr = "<Super>W"
         self.blink = True
-        self.prodmon_program = ["~/code-git/prodmonitor/prod", "-q"]
+        self.prodmon_program = ["prod", "-q"]
 
         # main info
         self.running = True
@@ -156,6 +156,8 @@ def toggleProdMonTray(data):
 def main():
     """Parse command line, and start everything."""
     global instance
+    # cd script directory
+    os.chdir(os.path.dirname(os.path.realpath(__file__)))
     instance = ProdMonTray()
     instance.setRunning()
 
