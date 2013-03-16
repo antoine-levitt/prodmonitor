@@ -32,6 +32,8 @@
 #define DEBUG 0
 #endif
 
+int quiet = 0;
+
 /**
  * TODO:
  *  * remove hardoded values, add program parameters
@@ -205,7 +207,7 @@ void leave_window(const char* window_name)
 	// if there was already a key, we did the copy for nothing
 	if(res)
 		free(name);
-	print_table();
+	if (! quiet) print_table();
 
 
 	/* insert in db */
@@ -249,6 +251,8 @@ void sigquit_handler(int sig)
 
 int main(int argc, char *argv[])
 {
+	quiet = (argc > 1 && !strcmp(argv[1], "-q"));
+
 	// init libwindowswitchs
 	windowswitchs_init(&enter_window, &leave_window);
 
@@ -277,7 +281,7 @@ int main(int argc, char *argv[])
 		return rc;
 	}
 
-	printf("Start\n");
+	if (!quiet) printf("Start\n");
 
 	windowswitchs_start();
 
@@ -286,7 +290,7 @@ int main(int argc, char *argv[])
 	/* close db */
 	sqlite3_close(db);
 
-	printf("End\n");
+	if (!quiet) printf("End\n");
 
 	return 0;
 }
